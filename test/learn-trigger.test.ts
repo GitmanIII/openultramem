@@ -256,3 +256,12 @@ test("event log records the model and outcome", async () => {
   expect(run.memory).toBe(1)
   expect(run.applied).toBe(1)
 })
+
+
+test("events carry an instance id when one is supplied", async () => {
+  const dir = mkdtempSync(join(tmpdir(), "oum-instance-"))
+  const events = new LearnEvents(join(dir, "events.jsonl"), "abcd12")
+  events.trigger("ses_1", "due:turns", { turns: 3, tools: 0 })
+  const [record] = events.read()
+  expect(record && "instance" in record ? record.instance : undefined).toBe("abcd12")
+})

@@ -3,6 +3,16 @@
 Semantic versioning. Tags are annotated (`v0.1.0`) and always match
 `package.json` and `src/version.ts`.
 
+## 0.4.1 — 2026-10-27
+
+- **Attributable learn events.** Every trigger and run record now carries the
+  plugin instance id. A repeated prompt hook and a second plugin instance look
+  identical in the log without it; now they do not.
+- Context: after the migration, `prompt` hooks fired more than once for one turn
+  (V2 documents this as possible), producing rows with contradictory counters.
+  No duplicate memory injection was observed — a fresh session saw exactly one
+  MEMORY and one USER block.
+
 ## 0.4.0 — 2026-10-27
 
 Migration, and the end of `opencode-hermes` on this machine.

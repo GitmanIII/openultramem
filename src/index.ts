@@ -162,7 +162,8 @@ export default Plugin.define({
     if (!injectMemory) log.warn("memory injection disabled: opencode-hermes is active and coexistence is false")
 
     // ---- Learn module -----------------------------------------------------
-    const events = new LearnEvents(learnEventsFile(config.dataRoot))
+    const instance = Math.random().toString(36).slice(2, 8)
+    const events = new LearnEvents(learnEventsFile(config.dataRoot), instance)
     const engine = new StructuredEngine({
       generate: async ({ prompt, model }) =>
         ctx.experimental.generate.text({
@@ -267,6 +268,7 @@ export default Plugin.define({
       })
     })
     log.info("learn ready", {
+      instance,
       enabled: config.learn.enabled,
       triggers: config.learn.triggers,
       command: "oum-reflect",

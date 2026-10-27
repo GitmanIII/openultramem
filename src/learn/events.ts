@@ -24,6 +24,7 @@ export type TriggerReason =
 export interface TriggerRecord {
   ts: string
   session: string
+  instance?: string
   event: "trigger"
   reason: TriggerReason
   turns: number
@@ -34,6 +35,7 @@ export interface TriggerRecord {
 export interface RunRecord {
   ts: string
   session: string
+  instance?: string
   event: "run"
   durationMs: number
   model: string
@@ -50,7 +52,10 @@ export interface RunRecord {
 export type LearnRecord = TriggerRecord | RunRecord
 
 export class LearnEvents {
-  constructor(private readonly path: string) {}
+  constructor(
+    private readonly path: string,
+    private readonly instance?: string,
+  ) {}
 
   append(record: LearnRecord): void {
     try {
@@ -65,6 +70,7 @@ export class LearnEvents {
     this.append({
       ts: new Date().toISOString(),
       session,
+      instance: this.instance,
       event: "trigger",
       reason,
       turns: counters.turns,
@@ -74,7 +80,7 @@ export class LearnEvents {
   }
 
   run(record: Omit<RunRecord, "ts" | "event">): void {
-    this.append({ ts: new Date().toISOString(), event: "run", ...record })
+    this.append({ ts: new Date().toISOString(), event: "run", instance: this.instance, ...record })
   }
 
   read(): LearnRecord[] {
