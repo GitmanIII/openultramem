@@ -6,6 +6,8 @@
  */
 import { Plugin } from "@opencode/plugin"
 import type { Database } from "bun:sqlite"
+import { homedir } from "node:os"
+import { join } from "node:path"
 import { loadConfig } from "./config.ts"
 import { createLogger } from "./log.ts"
 import { hostDatabase, stateDatabase } from "./paths.ts"
@@ -13,6 +15,9 @@ import { openHost, openState } from "./recall/db.ts"
 import { reconcile, sync } from "./recall/ingest.ts"
 import { startBackfill, type BackfillHandle } from "./recall/backfill.ts"
 import { createSessionSearch } from "./recall/tool.ts"
+import { MemoryStore } from "./memory/store.ts"
+import { SnapshotCache } from "./memory/snapshot.ts"
+import { createMemoryTool } from "./memory/tool.ts"
 
 export default Plugin.define({
   id: "openultramem",
@@ -47,13 +52,25 @@ export default Plugin.define({
     })
 
     // Coexistence: two memory plugins would inject two blocks and write the same files.
+    let hermesActive = false
     try {
       const active = await ctx.plugin.list()
-      const hermes = (active.data ?? []).some((plugin) => String(plugin.id ?? "").toLowerCase().includes("hermes"))
-      if (hermes) log.warn("coexistence: opencode-hermes is active", { allowed: config.coexistence })
+      hermesActive = (active.data ?? []).some((plugin) => String(plugin.id ?? "").toLowerCase().includes("hermes"))
+      if (hermesActive) log.warn("coexistence: opencode-hermes is active", { allowed: config.coexistence })
     } catch {
       // plugin.list is advisory only
     }
+
+    const store = new MemoryStore(config)
+    if (!config.coexistence && store.both().memory.entries.length === 0 && store.both().user.entries.length === 0) {
+      try {
+        if (store.migrateFrom(join(homedir(), ".config", "opencode", "memories"))) log.info("migrated memory from opencode-hermes")
+      } catch (error) {
+        log.warn("memory migration failed", { message: String((error as Error)?.message ?? error) })
+      }
+    }
+    const snapshots = new SnapshotCache(store)
+    const injectMemory = !hermesActive || config.coexistence
 
     await ctx.tool.transform((editor) => {
       editor.namespace({ name: "oum", description: "OpenUltraMem: session recall and memory" })
@@ -66,7 +83,40 @@ export default Plugin.define({
           permission: (input) => ctx.permission.assert(input),
         }) as never,
       )
+      editor.add(
+        createMemoryTool({
+          store,
+          log,
+          permission: (input) => ctx.permission.assert(input),
+        }) as never,
+      )
     })
+
+    // Frozen snapshot: read once per session, appended unchanged on every request.
+    const contextHook = await ctx.session.hook("context", (event) => {
+      if (!injectMemory) return
+      try {
+        const block = snapshots.freeze(event.sessionID)
+        if (block) event.system.push({ type: "text", text: block })
+      } catch (error) {
+        log.warn("memory injection failed", { message: String((error as Error)?.message ?? error) })
+      }
+    })
+
+    // Two memory plugins must not both inject.
+    if (!injectMemory) log.warn("memory injection disabled: opencode-hermes is active and coexistence is false")
+
+    const controller = new AbortController()
+    void (async () => {
+      try {
+        for await (const event of ctx.event.subscribe({ types: ["session.deleted"], signal: controller.signal })) {
+          const id = (event as { data?: { sessionID?: string } }).data?.sessionID
+          if (id) snapshots.evict(id)
+        }
+      } catch {
+        // eviction is best-effort; the cache is capped anyway
+      }
+    })()
 
     // Warm the index, then keep catching up in the background. Search-time sync
     // is too short to backfill 10k messages, so a fresh install would stay stale.
@@ -85,6 +135,8 @@ export default Plugin.define({
 
     return () => {
       backfill?.stop()
+      controller.abort()
+      void contextHook.dispose()
       try {
         host?.close()
       } catch {}
