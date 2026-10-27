@@ -18,6 +18,7 @@ import { createSessionSearch } from "./recall/tool.ts"
 import { MemoryStore } from "./memory/store.ts"
 import { SnapshotCache } from "./memory/snapshot.ts"
 import { createMemoryTool } from "./memory/tool.ts"
+import { VERSION } from "./version.ts"
 
 export default Plugin.define({
   id: "openultramem",
@@ -44,7 +45,8 @@ export default Plugin.define({
     }
 
     log.info("initialized", {
-      version: ctx.app.version,
+      oum: VERSION,
+      host: ctx.app.version,
       directory: ctx.location.directory,
       project: ctx.location.project.id,
       dataRoot: config.dataRoot,

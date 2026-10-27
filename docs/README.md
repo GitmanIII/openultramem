@@ -8,5 +8,6 @@
 | [SKILLS.md](SKILLS.md) | Native skill ownership, OUM roots, frontmatter, actions, promote/fork, guards. |
 | [MIGRATION.md](MIGRATION.md) | Importing from `opencode-hermes`, coexistence, verification, rollback. |
 | [VERIFICATION.md](VERIFICATION.md) | The four pre-build unknowns, measured on OpenCode 2.2.0. |
+| [RELEASING.md](RELEASING.md) | Version rules, tag checklist, release shape. |
 
 Status: design locked 2026-10-21; learn module updated 2026-10-22. Not implemented.
