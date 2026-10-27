@@ -33,19 +33,24 @@ export function createMemoryTool(deps: MemoryToolDeps) {
   const { store, log } = deps
 
   const describe = () => {
-    const { memory, user } = store.both()
-    return `memory: ${memory.percent}% — ${memory.chars}/${memory.budget} chars (${memory.entries.length} entries) · user: ${user.percent}% — ${user.chars}/${user.budget} chars (${user.entries.length} entries)`
+    const { memory, user, project } = store.both()
+    const parts = [
+      `memory: ${memory.percent}% — ${memory.chars}/${memory.budget} chars (${memory.entries.length} entries)`,
+      `user: ${user.percent}% — ${user.chars}/${user.budget} chars (${user.entries.length} entries)`,
+    ]
+    if (project) parts.push(`project: ${project.percent}% — ${project.chars}/${project.budget} chars (${project.entries.length} entries)`)
+    return parts.join(" · ")
   }
 
   return {
     name: "memory",
     description:
-      "Manage canonical memory. action=add|replace|remove|batch with target=memory (agent notes) or user (who the user is). replace/remove match old_text exactly once and must be given the FULL new entry as content. Writes are refused, not truncated, when a file would exceed its budget.",
+      "Manage canonical memory. action=add|replace|remove|batch with target=memory (machine-wide agent notes), user (who the user is), or project (facts for this project only). replace/remove match old_text exactly once and must be given the FULL new entry as content. Writes are refused, not truncated, when a file would exceed its budget.",
     input: {
       type: "object",
       properties: {
         action: { type: "string", enum: ["add", "replace", "remove", "batch"] },
-        target: { type: "string", enum: ["memory", "user"] },
+        target: { type: "string", enum: ["memory", "user", "project"] },
         content: { type: "string", description: "Entry text (full replacement text for replace)." },
         old_text: { type: "string", description: "Exact substring identifying one existing entry." },
         operations: {
@@ -55,7 +60,7 @@ export function createMemoryTool(deps: MemoryToolDeps) {
             type: "object",
             properties: {
               action: { type: "string", enum: ["add", "replace", "remove"] },
-              target: { type: "string", enum: ["memory", "user"] },
+              target: { type: "string", enum: ["memory", "user", "project"] },
               content: { type: "string" },
               old_text: { type: "string" },
             },

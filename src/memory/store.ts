@@ -9,9 +9,13 @@
  */
 import { closeSync, existsSync, fsyncSync, mkdirSync, openSync, readFileSync, renameSync, rmSync, statSync, writeFileSync } from "node:fs"
 import { dirname, join } from "node:path"
-import { memoryFile, userFile } from "../paths.ts"
+import { memoryFile, projectMemoryFile, userFile } from "../paths.ts"
 
-export type Target = "memory" | "user"
+/**
+ * "memory" and "user" are machine-wide; "project" exists only when the store was
+ * built with a project context, and never leaves the machine's config root.
+ */
+export type Target = "memory" | "user" | "project"
 
 export const DELIMITER = "\n§\n"
 
@@ -49,6 +53,7 @@ export interface ApplyResult {
   results: OpResult[]
   memory: FileState
   user: FileState
+  project?: FileState
 }
 
 const INJECTION = [
@@ -88,13 +93,30 @@ export class MemoryStore {
   private readonly budgets: Record<Target, number>
   private readonly lockPath: string
 
-  constructor(options: { memoryRoot: string; memoryChars: number; userChars: number }) {
-    this.paths = { memory: memoryFile(options.memoryRoot), user: userFile(options.memoryRoot) }
-    this.budgets = { memory: options.memoryChars, user: options.userChars }
+  constructor(options: {
+    memoryRoot: string
+    memoryChars: number
+    userChars: number
+    projectChars?: number
+    project?: { id: string }
+  }) {
+    this.project = options.project?.id
+    this.paths = {
+      memory: memoryFile(options.memoryRoot),
+      user: userFile(options.memoryRoot),
+      ...(this.project ? { project: projectMemoryFile(options.memoryRoot, this.project) } : {}),
+    } as Record<Target, string>
+    this.budgets = { memory: options.memoryChars, user: options.userChars, project: options.projectChars ?? 1200 }
     this.lockPath = join(dirname(this.paths.memory), ".write.lock")
   }
 
-  path(target: Target): string {
+  private readonly project?: string
+
+  supports(target: Target): boolean {
+    return target === "memory" || target === "user" || Boolean(this.project)
+  }
+
+  path(target: Target): string | undefined {
     return this.paths[target]
   }
 
@@ -104,7 +126,7 @@ export class MemoryStore {
 
   readRaw(target: Target): string {
     const path = this.paths[target]
-    if (!existsSync(path)) return ""
+    if (!path || !existsSync(path)) return ""
     return readFileSync(path, "utf8")
   }
 
@@ -112,11 +134,15 @@ export class MemoryStore {
     const raw = this.readRaw(target)
     const entries = parse(raw)
     const { chars, percent } = sizes(serialize(entries), this.budgets[target])
-    return { target, path: this.paths[target], entries, chars, budget: this.budgets[target], percent }
+    return { target, path: this.paths[target] ?? "", entries, chars, budget: this.budgets[target], percent }
   }
 
-  both(): { memory: FileState; user: FileState } {
-    return { memory: this.state("memory"), user: this.state("user") }
+  both(): { memory: FileState; user: FileState; project?: FileState } {
+    return {
+      memory: this.state("memory"),
+      user: this.state("user"),
+      ...(this.project ? { project: this.state("project") } : {}),
+    }
   }
 
   /** Apply operations atomically: all or nothing, against one fresh read. */
@@ -126,14 +152,19 @@ export class MemoryStore {
       const drafts: Record<Target, string[]> = {
         memory: parse(this.readRaw("memory")),
         user: parse(this.readRaw("user")),
+        project: this.project ? parse(this.readRaw("project")) : [],
       }
       const results: OpResult[] = []
       const touched = new Set<Target>()
 
       for (const op of operations) {
         const target = op.target
-        if (target !== "memory" && target !== "user") {
+        if (target !== "memory" && target !== "user" && target !== "project") {
           results.push({ action: op.action, target: target as Target, status: "refused", message: "unknown target" })
+          continue
+        }
+        if (target === "project" && !this.project) {
+          results.push({ action: op.action, target, status: "refused", message: "no project context for this session" })
           continue
         }
         const entries = drafts[target]

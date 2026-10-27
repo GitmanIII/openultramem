@@ -56,6 +56,7 @@ function harness(overrides: Partial<LearnSettings> = {}): Harness {
       transcript: "USER: do the thing",
       memory: { entries: [], chars: 0, budget: 2200 },
       user: { entries: [], chars: 0, budget: 1375 },
+      projectMemory: { entries: [], chars: 0, budget: 1200 },
       policy: "",
       skills: [],
       skillsEnabled: false,

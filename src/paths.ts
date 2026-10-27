@@ -30,6 +30,10 @@ export function userFile(memoryRoot: string): string {
   return join(expandHome(memoryRoot), "USER.md")
 }
 
+export function projectMemoryFile(memoryRoot: string, projectID: string): string {
+  return join(expandHome(memoryRoot), "projects", projectID, "MEMORY.md")
+}
+
 export function policyFile(memoryRoot: string): string {
   return join(expandHome(memoryRoot), "POLICY.md")
 }

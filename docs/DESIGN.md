@@ -30,6 +30,11 @@ OUM index is derived, disposable, and rebuildable.
 
 - Files: `<memoryRoot>/MEMORY.md` (2,200 chars) and `<memoryRoot>/USER.md`
   (1,375 chars). Entries joined by `\n§\n`, same format as Hermes.
+- Per-project memory: `<memoryRoot>/projects/<project-id>/MEMORY.md`
+  (`projectChars`, default 1,200). Injected after the global pair, scoped to the
+  project that owns the session. It lives under the config root, never in the
+  repository, so project facts cannot leak into a public repo. Absolute paths are
+  allowed there and forbidden in the global files.
 - `<memoryRoot>/POLICY.md`: user-owned design decisions and scope rules, read by
   the learn module. It is not injected into the session; it exists so the writer
   does not encode stale intermediate decisions.
@@ -39,7 +44,8 @@ OUM index is derived, disposable, and rebuildable.
   rendered block by session ID. The `context` hook appends that exact text on
   every model request for the session. Mid-session file edits hit disk but do not
   change the prompt. Evict on `session.deleted`.
-- **Tool:** `oum_memory` with `add`, `replace`, `remove`, `batch`.
+- **Tool:** `oum_memory` with `add`, `replace`, `remove`, `batch`; targets
+  `memory`, `user`, and `project`.
   - `add` refuses when the target is over budget and returns per-entry sizes plus
     a consolidation instruction.
   - `replace` and `remove` match `old_text` exactly once.
@@ -438,6 +444,7 @@ Defaults; every value overridable by `ctx.options` and `OUM_*` env.
   "dataRoot": "~/.local/share/opencode/oum",
   "memoryChars": 2200,
   "userChars": 1375,
+  "projectChars": 1200,
   "learn": {
     "enabled": true,
     "model": "session",
@@ -552,6 +559,10 @@ Remaining:
   migrates opportunistically on an empty OUM root.
 - 2026-10-27 — Milestone 5 completed: OUM replaced `opencode-hermes` on
   2026-10-27 after a consolidated 1,892-char memory and a verified switch.
+- 2026-10-27 — Project memory is a private third file under
+  `<memoryRoot>/projects/<project-id>/`, not an in-repo file: personal notes must
+  never enter a public repository. Ambiguous facts go to the project scope, so a
+  scoped fact cannot pollute other projects.
 
 ## Appendix A. Optional controller backend (Jev / Laya)
 

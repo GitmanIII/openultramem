@@ -16,6 +16,7 @@ export interface LearnPromptInput {
   transcript: string
   memory: PromptMemory
   user: PromptMemory
+  projectMemory: PromptMemory
   policy: string
   skills: { id: string; description: string; sha?: string; scope?: string; body?: string }[]
   skillsEnabled: boolean
@@ -56,6 +57,11 @@ no prose, no markdown fences.
    facts) and then add. Never exceed the budget.
 3. "Nothing to save" is allowed but it is not the default. Most real sessions
    contain at least one durable fact or none at all; do not invent filler.
+   Scope: target "project" for facts that only hold in this project (its
+   conventions, commands, layout, gotchas); "memory" or "user" for machine-wide
+   facts, preferences, and corrections. Ambiguous goes to "project" — a scoped
+   fact cannot pollute other projects. Absolute paths are allowed only in
+   "project" memory.
 4. POLICY.md is authoritative. If the transcript contradicts it, do not encode
    the transcript's version; say so in "notes".
 5. Prefer correcting an existing entry (replace) over appending a near-duplicate.
@@ -79,6 +85,8 @@ directory: ${input.project.directory}
 ${memoryBlock("MEMORY.md", input.memory)}
 
 ${memoryBlock("USER.md", input.user)}
+
+${memoryBlock("PROJECT MEMORY (this project)", input.projectMemory)}
 
 ## POLICY.md
 

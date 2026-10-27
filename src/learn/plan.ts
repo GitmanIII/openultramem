@@ -7,7 +7,7 @@
 import { createHash } from "node:crypto"
 
 export type MemoryAction = "add" | "replace" | "remove"
-export type Target = "memory" | "user"
+export type Target = "memory" | "user" | "project"
 
 export interface MemoryOp {
   action: MemoryAction
@@ -47,7 +47,7 @@ export interface LearnPlan {
 export type ParseResult = { ok: true; plan: LearnPlan } | { ok: false; error: string }
 
 const MEMORY_ACTIONS = new Set(["add", "replace", "remove"])
-const TARGETS = new Set(["memory", "user"])
+const TARGETS = new Set(["memory", "user", "project"])
 const CURATION_ACTIONS = new Set(["supersede", "merge", "demote", "promote", "archive"])
 const SKILL_ACTIONS = new Set(["create", "patch", "write_file", "remove_file", "delete", "promote", "fork"])
 const TOP_KEYS = new Set(["memory", "skills", "curation", "notes", "confidence"])
@@ -87,7 +87,7 @@ export function parsePlan(output: string): ParseResult {
       return { ok: false, error: `memory[${index}].action must be one of add, replace, remove` }
     }
     if (typeof raw.target !== "string" || !TARGETS.has(raw.target)) {
-      return { ok: false, error: `memory[${index}].target must be memory or user` }
+      return { ok: false, error: `memory[${index}].target must be memory, user, or project` }
     }
     if (raw.action === "add" || raw.action === "replace") {
       if (typeof raw.content !== "string" || !raw.content.trim()) {
@@ -117,7 +117,7 @@ export function parsePlan(output: string): ParseResult {
       return { ok: false, error: `curation[${index}].action must be one of ${[...CURATION_ACTIONS].join(", ")}` }
     }
     if (raw.target !== undefined && (typeof raw.target !== "string" || !TARGETS.has(raw.target))) {
-      return { ok: false, error: `curation[${index}].target must be memory or user` }
+      return { ok: false, error: `curation[${index}].target must be memory, user, or project` }
     }
     if (raw.action !== "promote") {
       if (typeof raw.old_text !== "string" || !raw.old_text.trim()) {

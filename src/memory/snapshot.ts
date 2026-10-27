@@ -10,11 +10,11 @@ import { MemoryStore } from "./store.ts"
 const RULE = "═".repeat(46)
 const MAX_SESSIONS = 256
 
-export function render(memory: FileState, user: FileState): string {
+export function render(memory: FileState, user: FileState, project?: FileState): string {
   const blocks: string[] = []
 
-  const section = (title: string, state: FileState) => {
-    if (!state.entries.length) return
+  const section = (title: string, state: FileState | undefined) => {
+    if (!state || !state.entries.length) return
     blocks.push(
       [RULE, `${title} [${state.percent}% — ${state.chars}/${state.budget} chars]`, RULE, state.entries.join("\n§\n")].join("\n"),
     )
@@ -22,6 +22,8 @@ export function render(memory: FileState, user: FileState): string {
 
   section("MEMORY (your personal notes)", memory)
   section("USER PROFILE (who the user is)", user)
+  // Scoped facts come last: they refine, and never override, the global pair.
+  section("PROJECT MEMORY (this project)", project)
   return blocks.join("\n\n")
 }
 
@@ -34,8 +36,8 @@ export class SnapshotCache {
   freeze(sessionID: string): string {
     const existing = this.cache.get(sessionID)
     if (existing !== undefined) return existing
-    const { memory, user } = this.store.both()
-    const block = render(memory, user)
+    const { memory, user, project } = this.store.both()
+    const block = render(memory, user, project)
     if (this.cache.size >= MAX_SESSIONS) {
       const oldest = this.cache.keys().next().value
       if (oldest !== undefined) this.cache.delete(oldest)

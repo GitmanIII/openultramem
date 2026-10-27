@@ -81,7 +81,13 @@ export default Plugin.define({
       // plugin.list is advisory only
     }
 
-    const store = new MemoryStore(config)
+    const store = new MemoryStore({
+      memoryRoot: config.memoryRoot,
+      memoryChars: config.memoryChars,
+      userChars: config.userChars,
+      projectChars: config.projectChars,
+      project: { id: ctx.location.project.id },
+    })
     if (!config.coexistence && store.both().memory.entries.length === 0 && store.both().user.entries.length === 0) {
       try {
         if (store.migrateFrom(join(homedir(), ".config", "opencode", "memories"))) log.info("migrated memory from opencode-hermes")
@@ -186,7 +192,7 @@ export default Plugin.define({
       const database = getHost()
       if (!database) throw new Error("host session database unavailable")
       const transcript = buildTranscript(database, sessionID, config.learn.maxTranscriptChars)
-      const { memory, user } = store.both()
+      const { memory, user, project } = store.both()
 
       let skills: { id: string; description: string; sha?: string; scope?: string; body?: string }[] = []
       try {
@@ -223,6 +229,11 @@ export default Plugin.define({
         transcript: transcript.text,
         memory: { entries: memory.entries, chars: memory.chars, budget: memory.budget },
         user: { entries: user.entries, chars: user.chars, budget: user.budget },
+        projectMemory: {
+          entries: project?.entries ?? [],
+          chars: project?.chars ?? 0,
+          budget: project?.budget ?? config.projectChars,
+        },
         policy,
         skills,
         skillsEnabled: true,

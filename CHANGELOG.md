@@ -3,6 +3,23 @@
 Semantic versioning. Tags are annotated (`v0.1.0`) and always match
 `package.json` and `src/version.ts`.
 
+## 0.5.0 — 2026-10-27
+
+Project-scoped memory.
+
+- **Third target** — `oum_memory` accepts `target: "project"`, backed by
+  `<memoryRoot>/projects/<project-id>/MEMORY.md` with its own budget
+  (`projectChars`, default 1,200). It is injected after the global pair and only
+  for sessions in that project.
+- **Private by construction** — the file lives under the config root, never in the
+  repository, so project facts cannot leak into a public repo. Absolute paths are
+  allowed there and still forbidden in global memory.
+- **Learn scope rule** — plans choose `project` for project-specific conventions,
+  commands, layout, and gotchas, and `memory`/`user` for machine-wide facts.
+  Ambiguous goes to `project`: a scoped fact cannot pollute other projects.
+- **Frozen like the rest** — the project block is read once per session; a
+  mid-session write appears in new sessions only.
+
 ## 0.4.1 — 2026-10-27
 
 - **Attributable learn events.** Every trigger and run record now carries the

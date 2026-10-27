@@ -4,8 +4,8 @@ Memory that survives the session — for OpenCode V2.
 
 OUM adds three things to OpenCode:
 
-- **Canonical memory** — bounded `MEMORY.md` and `USER.md`, injected as a stable
-  per-session snapshot.
+- **Canonical memory** — bounded `MEMORY.md` and `USER.md`, plus a private
+  per-project file, injected as a stable per-session snapshot.
 - **Session recall** — a disposable `state.db` index over OpenCode's own session
   history, with ranked full-text search.
 - **Procedural memory** — learn-driven skill authoring into OpenCode's native
@@ -47,7 +47,9 @@ environment variables — for example:
 
 | Path | Purpose |
 |---|---|
-| `~/.config/opencode/oum/MEMORY.md`, `USER.md` | canonical memory; survives everything |
+| `~/.config/opencode/oum/MEMORY.md`, `USER.md` | machine-wide canonical memory; survives everything |
+| `~/.config/opencode/oum/projects/<id>/MEMORY.md` | private per-project facts, injected only there |
+| `~/.config/opencode/oum/POLICY.md` | user-owned rules the learn module must obey |
 | `~/.local/share/opencode/oum/state.db` | derived session index; safe to delete |
 | `~/.local/share/opencode/oum/oum.log` | diagnostics (no TUI toasts) |
 

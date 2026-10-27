@@ -11,13 +11,19 @@ function freshStore(memoryChars = 2200, userChars = 1375): MemoryStore {
   return new MemoryStore({ memoryRoot: root, memoryChars, userChars })
 }
 
+function projectStore(projectChars = 300): MemoryStore {
+  const root = mkdtempSync(join(tmpdir(), "oum-project-"))
+  mkdirSync(root, { recursive: true })
+  return new MemoryStore({ memoryRoot: root, memoryChars: 2200, userChars: 1375, projectChars, project: { id: "proj123" } })
+}
+
 describe("store", () => {
   test("add writes a §-joined entry", () => {
     const store = freshStore()
     const result = store.apply([{ action: "add", target: "memory", content: "fact one" }])
     expect(result.ok).toBe(true)
     expect(store.state("memory").entries).toEqual(["fact one"])
-    expect(readFileSync(store.path("memory"), "utf8")).toContain("fact one")
+    expect(readFileSync(store.path("memory")!, "utf8")).toContain("fact one")
   })
 
   test("duplicate add is skipped, not duplicated", () => {
@@ -73,7 +79,7 @@ describe("store", () => {
     ])
     expect(result.ok).toBe(false)
     expect(store.state("memory").entries).toHaveLength(0)
-    expect(existsSync(store.path("memory")) ? readFileSync(store.path("memory"), "utf8").trim() : "").toBe("")
+    expect(existsSync(store.path("memory")!) ? readFileSync(store.path("memory")!, "utf8").trim() : "").toBe("")
   })
 
   test("rejects delimiter, empty, and injection-shaped entries", () => {
@@ -87,7 +93,7 @@ describe("store", () => {
   test("writes are atomic and leave no temp files", () => {
     const store = freshStore()
     store.apply([{ action: "add", target: "memory", content: "atomic" }])
-    const dir = store.path("memory").replace(/\/MEMORY\.md$/, "")
+    const dir = store.path("memory")!.replace(/\/MEMORY\.md$/, "")
     const leftovers = readdirSync(dir).filter((name) => name.includes(".tmp") || name.includes(".lock"))
     expect(leftovers).toEqual([])
   })
@@ -95,7 +101,7 @@ describe("store", () => {
   test("external edits are preserved because planning re-reads", () => {
     const store = freshStore()
     store.apply([{ action: "add", target: "memory", content: "first" }])
-    writeFileSync(store.path("memory"), serialize(["first", "external edit"]))
+    writeFileSync(store.path("memory")!, serialize(["first", "external edit"]))
     store.apply([{ action: "add", target: "memory", content: "second" }])
     expect(store.state("memory").entries).toEqual(["first", "external edit", "second"])
   })
@@ -163,5 +169,57 @@ describe("parsing", () => {
 
   test("size counts characters, not bytes", () => {
     expect(sizes("café", 100)).toEqual({ chars: 4, percent: 4 })
+  })
+})
+
+
+describe("project memory", () => {
+  test("writes under projects/<id>/ and stays out of the global file", () => {
+    const store = projectStore()
+    const result = store.apply([{ action: "add", target: "project", content: "this repo pins bun 1.4.2" }])
+    expect(result.ok).toBe(true)
+    expect(store.state("project").entries).toEqual(["this repo pins bun 1.4.2"])
+    expect(store.state("memory").entries).toEqual([])
+    expect(store.path("project")).toContain(`projects/proj123/MEMORY.md`)
+  })
+
+  test("has its own budget and refuses independently", () => {
+    const store = projectStore(40)
+    expect(store.apply([{ action: "add", target: "project", content: "x".repeat(30) }]).ok).toBe(true)
+    const refused = store.apply([{ action: "add", target: "project", content: "y".repeat(30) }])
+    expect(refused.ok).toBe(false)
+    expect(refused.results[0]!.message).toContain("project.md")
+    // Global memory is untouched by a project refusal.
+    expect(store.apply([{ action: "add", target: "memory", content: "global fact" }]).ok).toBe(true)
+  })
+
+  test("a store without project context refuses the target instead of writing elsewhere", () => {
+    const store = freshStore()
+    expect(store.supports("project")).toBe(false)
+    const result = store.apply([{ action: "add", target: "project", content: "nowhere" }])
+    expect(result.ok).toBe(false)
+    expect(result.results[0]!.message).toContain("no project context")
+  })
+
+  test("renders as a third section after the global pair", () => {
+    const store = projectStore()
+    store.apply([
+      { action: "add", target: "memory", content: "global" },
+      { action: "add", target: "project", content: "scoped" },
+    ])
+    const block = render(store.state("memory"), store.state("user"), store.state("project"))
+    expect(block).toContain("PROJECT MEMORY (this project)")
+    expect(block.indexOf("MEMORY (your personal notes)")).toBeLessThan(block.indexOf("PROJECT MEMORY"))
+    expect(block).toContain("scoped")
+  })
+
+  test("is frozen per session like the global block", () => {
+    const store = projectStore()
+    store.apply([{ action: "add", target: "project", content: "first" }])
+    const cache = new SnapshotCache(store)
+    const before = cache.freeze("ses_p")
+    store.apply([{ action: "add", target: "project", content: "second" }])
+    expect(cache.freeze("ses_p")).toBe(before)
+    expect(cache.freeze("ses_q")).toContain("second")
   })
 })

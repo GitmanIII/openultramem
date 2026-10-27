@@ -12,6 +12,7 @@ const input: LearnInput = {
   transcript: "USER: we decided to pin bun\nASSISTANT: noted",
   memory: { entries: ["machine is arch"], chars: 14, budget: 2200 },
   user: { entries: [], chars: 0, budget: 1375 },
+  projectMemory: { entries: [], chars: 0, budget: 1200 },
   policy: "Never write project paths into global memory.",
   skills: [{ id: "git-release", description: "Prepare releases", sha: "abc123", scope: "global" }],
   skillsEnabled: false,
@@ -25,6 +26,16 @@ describe("buildLearnPrompt", () => {
     expect(prompt).toContain("14/2200 chars")
     expect(prompt).toContain("git-release [global, sha abc123]: Prepare releases")
     expect(prompt).toContain("USER: we decided to pin bun")
+  })
+
+  test("carries project memory and the scope rule", () => {
+    const prompt = buildLearnPrompt({
+      ...input,
+      projectMemory: { entries: ["this repo pins bun 1.4.2"], chars: 22, budget: 1200 },
+    })
+    expect(prompt).toContain("PROJECT MEMORY (this project)")
+    expect(prompt).toContain("this repo pins bun 1.4.2")
+    expect(prompt).toContain('target "project"')
   })
 
   test("says skill authoring is unavailable when disabled", () => {

@@ -19,6 +19,7 @@ export interface OumConfig {
   dataRoot: string
   memoryChars: number
   userChars: number
+  projectChars: number
   learn: {
     enabled: boolean
     model: "session" | string
@@ -46,6 +47,7 @@ export const DEFAULTS: OumConfig = {
   dataRoot: "~/.local/share/opencode/oum",
   memoryChars: 2200,
   userChars: 1375,
+  projectChars: 1200,
   learn: {
     enabled: true,
     model: "session",
@@ -100,6 +102,7 @@ function merge(base: OumConfig, ...layers: Json[]): OumConfig {
     result.dataRoot = str(layer.dataRoot, result.dataRoot)
     result.memoryChars = num(layer.memoryChars, result.memoryChars)
     result.userChars = num(layer.userChars, result.userChars)
+    result.projectChars = num(layer.projectChars, result.projectChars)
     result.coexistence = bool(layer.coexistence, result.coexistence)
 
     const learn = section(layer.learn)
