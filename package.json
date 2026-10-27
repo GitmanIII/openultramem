@@ -1,0 +1,40 @@
+{
+  "name": "openultramem",
+  "version": "0.1.0",
+  "description": "OpenUltraMem: native memory, session recall, and procedural skills for OpenCode V2",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "opencode-plugin",
+    "opencode",
+    "memory",
+    "agent-memory",
+    "skills",
+    "session-search"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/GitmanIII/openultramem.git"
+  },
+  "author": "GitmanIII",
+  "license": "MIT",
+  "scripts": {
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "bench": "bun run scripts/bench.ts"
+  },
+  "dependencies": {
+    "@opencode/plugin": "2.2.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.4.4",
+    "typescript": "^7.0.2"
+  }
+}

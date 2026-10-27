@@ -486,13 +486,23 @@ Defaults; every value overridable by `ctx.options` and `OUM_*` env.
 
 ## 12. Open questions
 
-- How often do `session.execution.*` events get missed on the current V2? At
-  least one review ran on 2.1.1 (2026-10-21), but the 15-turn session on
-  2026-10-20 produced none. The next-prompt fallback must cover the gap.
-- Does `ctx.tool.transform` + namespace + `codemode: true` expose the expected
-  catalog?
-- Does `generate.text` accept a pinned model and fail visibly?
-- Does read-only attach of a live WAL `opencode.db` work without locking it?
+Resolved on 2026-10-27 against OpenCode 2.2.0 — see
+[VERIFICATION.md](VERIFICATION.md) for the measurements.
+
+- ~~Does `ctx.tool.transform` + namespace + `codemode: true` expose the expected
+  catalog?~~ Yes; effective ID `namespace_name`, `tools.<ns>.<tool>` in Code Mode.
+- ~~Does `generate.text` accept a pinned model and fail visibly?~~ Yes; a bad model
+  raises `Model not found: <provider>/<model>`. Use
+  `ctx.experimental.generate.text`.
+- ~~Does read-only attach of a live WAL `opencode.db` work without locking it?~~ Yes.
+- ~~How often do `session.execution.*` events get missed on the current V2?~~
+  Delivery is live, but **durable events are not retained host-side** (`event` is
+  empty of them, `event_sequence` only counts). There is no replay, so the
+  next-prompt fallback is mandatory and the miss rate stays unmeasured until the
+  event log accumulates.
+
+Remaining:
+
 - Repo/package name: `openultramem` / `@gitmaniii/openultramem`?
 - npm publication and release process.
 

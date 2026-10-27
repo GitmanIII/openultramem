@@ -7,15 +7,13 @@ Read order: [DESIGN.md](DESIGN.md) → [SCHEMA.md](SCHEMA.md) →
 
 ## Before coding
 
-1. Update OpenCode and record the exact version.
-2. Verify the four unknowns with a throwaway probe plugin or a clean-room
-   `opencode acp` run:
-   - `session.execution.*` delivery and miss rate;
-   - `ctx.tool.transform` + namespace + `codemode: true` catalog;
-   - `generate.text` with a pinned model;
-   - read-only attach of a live WAL `opencode.db`.
-3. Initialize git and commit the docs:
-   `git init -b main && git add . && git commit -m "docs: lock OUM design"`.
+1. ~~Update OpenCode and record the exact version.~~ **2.2.0**, plugin SDK
+   `@opencode/plugin` 2.2.0.
+2. ~~Verify the four unknowns.~~ Done 2026-10-27; see
+   [VERIFICATION.md](VERIFICATION.md). Headline: everything works, but durable
+   execution events are **not replayable**, so the next-prompt fallback is
+   mandatory.
+3. ~~Initialize git and commit the docs.~~ Done: `docs: lock OUM design`.
 
 ## Milestone 1 — retrieval core
 
