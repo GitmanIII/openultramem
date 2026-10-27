@@ -1,6 +1,6 @@
 {
   "name": "openultramem",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "description": "OpenUltraMem: native memory, session recall, and procedural skills for OpenCode V2",
   "type": "module",
   "exports": {

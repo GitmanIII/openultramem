@@ -4,6 +4,7 @@ import { tmpdir } from "node:os"
 import { join } from "node:path"
 import { MemoryStore, parse, serialize, sizes } from "../src/memory/store.ts"
 import { SnapshotCache, render } from "../src/memory/snapshot.ts"
+import { projectMemoryKey } from "../src/paths.ts"
 
 function freshStore(memoryChars = 2200, userChars = 1375): MemoryStore {
   const root = mkdtempSync(join(tmpdir(), "oum-memory-"))
@@ -14,7 +15,7 @@ function freshStore(memoryChars = 2200, userChars = 1375): MemoryStore {
 function projectStore(projectChars = 300): MemoryStore {
   const root = mkdtempSync(join(tmpdir(), "oum-project-"))
   mkdirSync(root, { recursive: true })
-  return new MemoryStore({ memoryRoot: root, memoryChars: 2200, userChars: 1375, projectChars, project: { id: "proj123" } })
+  return new MemoryStore({ memoryRoot: root, memoryChars: 2200, userChars: 1375, projectChars, project: { key: "proj123" } })
 }
 
 describe("store", () => {
@@ -180,7 +181,7 @@ describe("project memory", () => {
     expect(result.ok).toBe(true)
     expect(store.state("project").entries).toEqual(["this repo pins bun 1.4.2"])
     expect(store.state("memory").entries).toEqual([])
-    expect(store.path("project")).toContain(`projects/proj123/MEMORY.md`)
+    expect(store.path("project")).toContain("projects/proj123/MEMORY.md")
   })
 
   test("has its own budget and refuses independently", () => {
@@ -221,5 +222,23 @@ describe("project memory", () => {
     store.apply([{ action: "add", target: "project", content: "second" }])
     expect(cache.freeze("ses_p")).toBe(before)
     expect(cache.freeze("ses_q")).toContain("second")
+  })
+})
+
+
+describe("project memory key", () => {
+  test("is stable for one directory and distinct for two", () => {
+    const a = projectMemoryKey({ id: "global", canonical: "/work/alpha" })
+    const b = projectMemoryKey({ id: "global", canonical: "/work/alpha" })
+    const c = projectMemoryKey({ id: "global", canonical: "/work/beta" })
+    expect(a).toBe(b)
+    expect(a).not.toBe(c)
+    // Two local-only repos share the id but must not share memory.
+    expect(a.startsWith("global-")).toBe(true)
+    expect(c.startsWith("global-")).toBe(true)
+  })
+
+  test("falls back to the directory when canonical is absent", () => {
+    expect(projectMemoryKey({ id: "p", directory: "/x" })).toBe(projectMemoryKey({ id: "p", canonical: "/x" }))
   })
 })

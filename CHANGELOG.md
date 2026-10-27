@@ -3,6 +3,15 @@
 Semantic versioning. Tags are annotated (`v0.1.0`) and always match
 `package.json` and `src/version.ts`.
 
+## 0.5.1 — 2026-10-27
+
+- **Fix: project memory key.** Keying by `project.id` alone is wrong — local-only
+  repositories share the global project id, so two unrelated local directories
+  would read each other's project memory. The key is now
+  `<project-id>-<hash(canonical directory)>`, which the original design had
+  already called out as the trap.
+- Config-root project files written under the old key are empty and were removed.
+
 ## 0.5.0 — 2026-10-27
 
 Project-scoped memory.

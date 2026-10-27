@@ -30,8 +30,22 @@ export function userFile(memoryRoot: string): string {
   return join(expandHome(memoryRoot), "USER.md")
 }
 
-export function projectMemoryFile(memoryRoot: string, projectID: string): string {
-  return join(expandHome(memoryRoot), "projects", projectID, "MEMORY.md")
+export function projectMemoryFile(memoryRoot: string, key: string): string {
+  return join(expandHome(memoryRoot), "projects", key, "MEMORY.md")
+}
+
+/**
+ * Project memory key.
+ *
+ * `project.id` alone is not unique for local-only repositories, which share the
+ * global project id. Keying by the canonical directory keeps two unrelated local
+ * directories from reading each other's notes; the id keeps it legible.
+ */
+export function projectMemoryKey(project: { id: string; canonical?: string; directory?: string }): string {
+  const path = project.canonical || project.directory || ""
+  if (!path) return project.id
+  const digest = new Bun.CryptoHasher("sha256").update(path).digest("hex").slice(0, 10)
+  return `${project.id}-${digest}`
 }
 
 export function policyFile(memoryRoot: string): string {

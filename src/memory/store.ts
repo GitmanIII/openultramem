@@ -98,9 +98,9 @@ export class MemoryStore {
     memoryChars: number
     userChars: number
     projectChars?: number
-    project?: { id: string }
+    project?: { key: string }
   }) {
-    this.project = options.project?.id
+    this.project = options.project?.key
     this.paths = {
       memory: memoryFile(options.memoryRoot),
       user: userFile(options.memoryRoot),

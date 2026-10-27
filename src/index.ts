@@ -11,7 +11,7 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import { loadConfig } from "./config.ts"
 import { createLogger } from "./log.ts"
-import { hostDatabase, learnEventsFile, ledgerFile, policyFile, stateDatabase } from "./paths.ts"
+import { hostDatabase, learnEventsFile, ledgerFile, policyFile, projectMemoryKey, stateDatabase } from "./paths.ts"
 import { openHost, openState } from "./recall/db.ts"
 import { reconcile, sync } from "./recall/ingest.ts"
 import { startBackfill, type BackfillHandle } from "./recall/backfill.ts"
@@ -86,7 +86,7 @@ export default Plugin.define({
       memoryChars: config.memoryChars,
       userChars: config.userChars,
       projectChars: config.projectChars,
-      project: { id: ctx.location.project.id },
+      project: { key: projectMemoryKey(ctx.location.project) },
     })
     if (!config.coexistence && store.both().memory.entries.length === 0 && store.both().user.entries.length === 0) {
       try {

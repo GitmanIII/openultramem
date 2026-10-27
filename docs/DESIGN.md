@@ -30,8 +30,9 @@ OUM index is derived, disposable, and rebuildable.
 
 - Files: `<memoryRoot>/MEMORY.md` (2,200 chars) and `<memoryRoot>/USER.md`
   (1,375 chars). Entries joined by `\n§\n`, same format as Hermes.
-- Per-project memory: `<memoryRoot>/projects/<project-id>/MEMORY.md`
-  (`projectChars`, default 1,200). Injected after the global pair, scoped to the
+- Per-project memory: `<memoryRoot>/projects/<project-key>/MEMORY.md`
+  (`projectChars`, default 1,200), where the key is the project id plus a hash of
+  the canonical directory — local-only repositories share the id, not the path. Injected after the global pair, scoped to the
   project that owns the session. It lives under the config root, never in the
   repository, so project facts cannot leak into a public repo. Absolute paths are
   allowed there and forbidden in the global files.
