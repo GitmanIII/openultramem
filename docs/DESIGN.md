@@ -547,6 +547,11 @@ Remaining:
   tool action because promotion changes where a skill lives.
 - 2026-10-27 — Deletes move the directory into `<dataRoot>/skill-archive/`; the
   library never holds backups, ledgers, or hidden state.
+- 2026-10-27 — Migration is a script, not plugin setup: it inspects, refuses a
+  non-empty target, backs up, copies, and verifies entry counts. Setup still
+  migrates opportunistically on an empty OUM root.
+- 2026-10-27 — Milestone 5 completed: OUM replaced `opencode-hermes` on
+  2026-10-27 after a consolidated 1,892-char memory and a verified switch.
 
 ## Appendix A. Optional controller backend (Jev / Laya)
 

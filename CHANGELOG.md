@@ -3,6 +3,23 @@
 Semantic versioning. Tags are annotated (`v0.1.0`) and always match
 `package.json` and `src/version.ts`.
 
+## 0.4.0 — 2026-10-27
+
+Migration, and the end of `opencode-hermes` on this machine.
+
+- **`scripts/migrate.ts`** — dry-run inspection and `--apply` copy of canonical
+  memory. Additive by policy: it refuses a non-empty target unless `--force`,
+  backs the target up first, and verifies entry counts after copying.
+- **`src/migrate.ts`** — the reusable plan/apply/verify logic behind it, with
+  conflict detection between source and target.
+- **Live migration** — memory consolidated from 2,184 to 1,892 chars (11 entries,
+  308 headroom), `POLICY.md` written, `opencode.jsonc` switched from
+  `opencode-hermes` to `openultramem`, and every check in `docs/MIGRATION.md`
+  verified on a private server.
+- **Documented operational detail** — the running service caches its plugin set,
+  so `opencode service restart` is required for sessions that were open during
+  the switch; new locations load OUM immediately.
+
 ## 0.3.0 — 2026-10-27
 
 Procedural memory: OUM can author skills in OpenCode's own roots.
