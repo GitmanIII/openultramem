@@ -4,7 +4,7 @@
  */
 import type { Database } from "bun:sqlite"
 
-export const SCHEMA_VERSION = 2
+export const SCHEMA_VERSION = 3
 
 export const DDL = `
 CREATE TABLE IF NOT EXISTS meta(
@@ -52,6 +52,26 @@ CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts_tri USING fts5(
 CREATE INDEX IF NOT EXISTS messages_session_seq ON messages(session_id, seq);
 CREATE INDEX IF NOT EXISTS messages_created ON messages(created);
 CREATE INDEX IF NOT EXISTS messages_session_created ON messages(session_id, created);
+
+-- Internal skill index (dedupe + learn candidates). Never exposed as a tool.
+CREATE TABLE IF NOT EXISTS skills(
+  rid INTEGER PRIMARY KEY,
+  id TEXT NOT NULL UNIQUE,
+  name TEXT NOT NULL,
+  description TEXT NOT NULL,
+  scope TEXT NOT NULL,
+  path TEXT NOT NULL,
+  origin TEXT NOT NULL,
+  pinned INTEGER NOT NULL DEFAULT 0,
+  sha TEXT NOT NULL,
+  updated INTEGER NOT NULL
+);
+
+CREATE VIRTUAL TABLE IF NOT EXISTS skills_fts USING fts5(
+  id, name, description,
+  content='', contentless_delete=1,
+  tokenize='unicode61 remove_diacritics 2'
+);
 
 -- Applied learn operations, for idempotency per operation hash.
 CREATE TABLE IF NOT EXISTS learn_ops(

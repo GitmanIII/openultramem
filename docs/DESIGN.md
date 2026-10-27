@@ -540,6 +540,13 @@ Remaining:
 - 2026-10-27 — Curation has no note store to act on: `supersede`, `merge`, and
   `archive`/`demote` map to memory edits, and `promote` is refused until note
   scopes exist.
+- 2026-10-27 — Read-before-write is `base_hash`: the sha of the body at read
+  time. The tool returns the sha with the body when it is missing, and learn
+  candidates carry their sha so a patch can cite one.
+- 2026-10-27 — `promote` is never applied from a learn plan. It is an explicit
+  tool action because promotion changes where a skill lives.
+- 2026-10-27 — Deletes move the directory into `<dataRoot>/skill-archive/`; the
+  library never holds backups, ledgers, or hidden state.
 
 ## Appendix A. Optional controller backend (Jev / Laya)
 

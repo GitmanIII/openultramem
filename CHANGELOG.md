@@ -3,6 +3,33 @@
 Semantic versioning. Tags are annotated (`v0.1.0`) and always match
 `package.json` and `src/version.ts`.
 
+## 0.3.0 — 2026-10-27
+
+Procedural memory: OUM can author skills in OpenCode's own roots.
+
+- **`oum_skill_manage`** — `create`, `patch`, `write_file`, `remove_file`,
+  `delete`, `promote`, `fork`, with guards: kebab-case ids, a description budget,
+  path safety (no `..`, no absolute paths, no symlink escape), and size limits.
+- **Provenance** — `metadata.oum` records origin (`self`/`user`/`fork`/`compat`),
+  scope, created/updated dates, pinning, and `promoted_from`. Files without it
+  are treated as user-authored and left alone unless `skills.editUserSkills`.
+- **Read-before-write** — `patch` and `delete` require `base_hash`. When it is
+  missing the tool returns the current body and sha; the hash is the same one
+  discovery reports, so it stays valid across calls and sessions.
+- **Nothing is destroyed** — edits back up the skill directory, deletes move it
+  to `skill-archive/`, and every mutation appends to `skills-ledger.jsonl`.
+- **Promote and fork** — promote moves a project skill to the global library and
+  records where it came from; fork copies a global skill into the project so
+  project precedence wins locally. Learn plans may never promote.
+- **Learn integration** — candidates now arrive with scope, sha, and body, so the
+  engine can patch an umbrella precisely; `promote` remains an explicit action.
+- **Dedupe index** — a `skills` table plus FTS in `state.db` surfaces near
+  duplicates before a create, and is never exposed as a tool.
+
+Known limitation: `globalRoot` must be a root OpenCode natively discovers
+(`~/.agents/skills` by default). Pointing it elsewhere keeps the skill out of
+`/skills` until it is promoted or the root is discovered.
+
 ## 0.2.0 — 2026-10-27
 
 The learning loop: OUM now writes memory instead of waiting to be asked.

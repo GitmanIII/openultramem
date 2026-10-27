@@ -11,7 +11,7 @@ import { homedir } from "node:os"
 import { join } from "node:path"
 import { loadConfig } from "./config.ts"
 import { createLogger } from "./log.ts"
-import { hostDatabase, learnEventsFile, policyFile, stateDatabase } from "./paths.ts"
+import { hostDatabase, learnEventsFile, ledgerFile, policyFile, stateDatabase } from "./paths.ts"
 import { openHost, openState } from "./recall/db.ts"
 import { reconcile, sync } from "./recall/ingest.ts"
 import { startBackfill, type BackfillHandle } from "./recall/backfill.ts"
@@ -19,6 +19,10 @@ import { createSessionSearch } from "./recall/tool.ts"
 import { MemoryStore } from "./memory/store.ts"
 import { SnapshotCache } from "./memory/snapshot.ts"
 import { createMemoryTool } from "./memory/tool.ts"
+import { Ledger } from "./skills/ledger.ts"
+import { SkillManager } from "./skills/manager.ts"
+import { indexSkills } from "./skills/indexer.ts"
+import { createSkillTool } from "./skills/tool.ts"
 import { applyPlan } from "./learn/apply.ts"
 import { StructuredEngine, type LearnInput, type ModelRef } from "./learn/engine.ts"
 import { LearnEvents } from "./learn/events.ts"
@@ -63,7 +67,15 @@ export default Plugin.define({
     let hermesActive = false
     try {
       const active = await ctx.plugin.list()
-      hermesActive = (active.data ?? []).some((plugin) => String(plugin.id ?? "").toLowerCase().includes("hermes"))
+      const installed = (active.data ?? []).map((plugin) => String(plugin.id ?? ""))
+      hermesActive = installed.some((id) => id.toLowerCase().includes("hermes"))
+      const duplicates = installed.filter((id) => id === "openultramem").length
+      if (duplicates > 1) {
+        log.warn("duplicate plugin instance detected", {
+          count: duplicates,
+          note: "one instance may resolve default roots while another uses project options",
+        })
+      }
       if (hermesActive) log.warn("coexistence: opencode-hermes is active", { allowed: config.coexistence })
     } catch {
       // plugin.list is advisory only
@@ -80,6 +92,31 @@ export default Plugin.define({
     const snapshots = new SnapshotCache(store)
     const injectMemory = !hermesActive || config.coexistence
 
+    const ledger = new Ledger(ledgerFile(config.dataRoot))
+    const manager = new SkillManager({
+      config,
+      projectDir: ctx.location.directory,
+      dataRoot: config.dataRoot,
+      ledger,
+      log,
+      reload: () => ctx.skill.reload(),
+      afterMutation: (skills) => {
+        try {
+          indexSkills(db, skills)
+        } catch (error) {
+          log.warn("skill index failed", { message: String((error as Error)?.message ?? error) })
+        }
+      },
+    })
+
+    log.info("skill roots", { roots: manager.roots().map((root) => `${root.scope}:${root.path}`) })
+
+    try {
+      indexSkills(db, manager.list())
+    } catch (error) {
+      log.warn("initial skill index failed", { message: String((error as Error)?.message ?? error) })
+    }
+
     await ctx.tool.transform((editor) => {
       editor.namespace({ name: "oum", description: "OpenUltraMem: session recall and memory" })
       editor.add(
@@ -94,6 +131,13 @@ export default Plugin.define({
       editor.add(
         createMemoryTool({
           store,
+          log,
+          permission: (input) => ctx.permission.assert(input),
+        }) as never,
+      )
+      editor.add(
+        createSkillTool({
+          manager,
           log,
           permission: (input) => ctx.permission.assert(input),
         }) as never,
@@ -143,10 +187,25 @@ export default Plugin.define({
       const transcript = buildTranscript(database, sessionID, config.learn.maxTranscriptChars)
       const { memory, user } = store.both()
 
-      let skills: { id: string; description: string }[] = []
+      let skills: { id: string; description: string; sha?: string; scope?: string; body?: string }[] = []
       try {
-        const listed = await ctx.skill.list()
-        skills = (listed.data ?? []).map((skill) => ({ id: String(skill.id), description: skill.description ?? "" }))
+        // Candidates come from disk so the engine can patch precisely and cite a sha.
+        const words = new Set((transcript.text.toLowerCase().match(/[a-z]{4,}/g) ?? []).slice(0, 400))
+        skills = manager
+          .list()
+          .map((skill) => {
+            const overlap = `${skill.id} ${skill.description}`.toLowerCase().match(/[a-z]{4,}/g) ?? []
+            return { skill, score: overlap.filter((word) => words.has(word)).length }
+          })
+          .sort((a, b) => b.score - a.score)
+          .slice(0, 20)
+          .map(({ skill }) => ({
+            id: skill.id,
+            description: skill.description,
+            sha: skill.sha,
+            scope: skill.root.scope,
+            body: skill.body.slice(0, 1_200),
+          }))
       } catch {
         // skills are context, not a prerequisite
       }
@@ -165,7 +224,7 @@ export default Plugin.define({
         user: { entries: user.entries, chars: user.chars, budget: user.budget },
         policy,
         skills,
-        skillsEnabled: false,
+        skillsEnabled: true,
       }
     }
 
@@ -183,7 +242,7 @@ export default Plugin.define({
       log,
       modelFor: resolveModel,
       buildInput,
-      apply: (plan, sessionID) => applyPlan({ store, db, log }, plan, sessionID),
+      apply: (plan, sessionID) => applyPlan({ store, db, log, skills: manager }, plan, sessionID),
     })
 
     const promptHook = await ctx.session.hook("prompt", (event) => {

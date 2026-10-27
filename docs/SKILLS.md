@@ -1,6 +1,6 @@
 # Skills in OUM
 
-Status: design. Not implemented.
+Status: implemented in v0.3.0. `base_hash` enforces read-before-write.
 
 OpenCode owns discovery, the `/skills` picker, and the `skill` loader. OUM owns
 authoring and curation only. It never implements a library, picker, viewer, or

@@ -8,12 +8,14 @@
 import type { Database } from "bun:sqlite"
 import type { Logger } from "../log.ts"
 import type { MemoryOperation, MemoryStore, Target } from "../memory/store.ts"
-import { hashOp, type CurationOp, type LearnPlan, type MemoryOp } from "./plan.ts"
+import { hashOp, type LearnPlan, type MemoryOp, type SkillOp } from "./plan.ts"
+import type { SkillManager, MutationResult } from "../skills/manager.ts"
 
 export interface ApplyDeps {
   store: MemoryStore
   db: Database
   log: Logger
+  skills?: SkillManager
 }
 
 export interface Refusal {
@@ -84,7 +86,7 @@ export function applyPlan(deps: ApplyDeps, plan: LearnPlan, sessionID: string): 
   const { store, db, log } = deps
   const outcome: ApplyOutcome = { applied: 0, skipped: 0, unsupported: 0, refused: [] }
 
-  if (plan.skills.length) {
+  if (plan.skills.length && !deps.skills) {
     outcome.unsupported += plan.skills.length
     log.warn("learn: skill operations are not supported yet", { session: sessionID, count: plan.skills.length })
   }
@@ -129,6 +131,12 @@ export function applyPlan(deps: ApplyDeps, plan: LearnPlan, sessionID: string): 
     batch = batch.filter((_, index) => !refusedIndexes.has(index))
   }
 
+  if (plan.skills.length && deps.skills) {
+    const mark = (hash: string, action: string, target: string) =>
+      markApplied.run(hash, action, target, Date.now(), sessionID)
+    applySkills(deps, plan.skills, sessionID, outcome, isApplied, mark)
+  }
+
   log.info("learn: applied", {
     session: sessionID,
     applied: outcome.applied,
@@ -137,4 +145,50 @@ export function applyPlan(deps: ApplyDeps, plan: LearnPlan, sessionID: string): 
     unsupported: outcome.unsupported,
   })
   return outcome
+}
+
+
+function runSkillOp(manager: SkillManager, op: SkillOp): MutationResult {
+  const id = op.id ?? ""
+  switch (op.action) {
+    case "create":
+      return manager.create({ id, description: op.description ?? "", content: op.content ?? "", scope: op.scope })
+    case "patch":
+      return manager.patch({ id, description: op.description, content: op.content, base_hash: op.base_hash })
+    case "write_file":
+      return manager.writeFile({ id, path: op.path ?? "", content: op.content ?? "" })
+    case "remove_file":
+      return manager.removeFile({ id, path: op.path ?? "" })
+    case "delete":
+      return manager.delete({ id, base_hash: op.base_hash })
+    case "fork":
+      return manager.fork({ id })
+    case "promote":
+      return { ok: false, message: "promote is explicit; the learn module never promotes silently" }
+  }
+}
+
+function applySkills(
+  deps: ApplyDeps,
+  ops: SkillOp[],
+  sessionID: string,
+  outcome: ApplyOutcome,
+  isApplied: (hash: string) => boolean,
+  mark: (hash: string, action: string, target: string) => void,
+): void {
+  const manager = deps.skills!
+  for (const op of ops) {
+    const hash = hashOp(op)
+    if (isApplied(hash)) {
+      outcome.skipped++
+      continue
+    }
+    const result = runSkillOp(manager, op)
+    if (result.ok) {
+      mark(hash, op.action, "skill")
+      outcome.applied++
+    } else {
+      outcome.refused.push({ action: op.action, target: "skill", reason: result.message })
+    }
+  }
 }

@@ -1,6 +1,6 @@
 {
   "name": "openultramem",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "OpenUltraMem: native memory, session recall, and procedural skills for OpenCode V2",
   "type": "module",
   "exports": {
@@ -31,7 +31,8 @@
     "bench": "bun run scripts/bench.ts"
   },
   "dependencies": {
-    "@opencode/plugin": "2.2.0"
+    "@opencode/plugin": "2.2.0",
+    "yaml": "^2.9.1"
   },
   "devDependencies": {
     "@types/bun": "^1.4.4",

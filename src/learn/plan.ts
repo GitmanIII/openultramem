@@ -26,12 +26,14 @@ export interface CurationOp {
   content?: string
 }
 
-/** Skill authoring lands in M4; the shape is validated here already. */
 export interface SkillOp {
   action: "create" | "patch" | "write_file" | "remove_file" | "delete" | "promote" | "fork"
   id?: string
+  description?: string
   content?: string
   path?: string
+  scope?: "global" | "project"
+  base_hash?: string
 }
 
 export interface LearnPlan {
@@ -140,14 +142,38 @@ export function parsePlan(output: string): ParseResult {
   const skills: SkillOp[] = []
   for (const [index, raw] of asArray(parsed.skills).entries()) {
     if (!isRecord(raw)) return { ok: false, error: `skills[${index}] must be an object` }
+    const allowed = new Set(["action", "id", "description", "content", "path", "scope", "base_hash"])
+    const bad = unknownKeys(raw, allowed)
+    if (bad.length) return { ok: false, error: `skills[${index}] unknown key(s): ${bad.join(", ")}` }
     if (typeof raw.action !== "string" || !SKILL_ACTIONS.has(raw.action)) {
       return { ok: false, error: `skills[${index}].action is not a known skill action` }
     }
+    if (typeof raw.id !== "string" || !raw.id.trim()) {
+      return { ok: false, error: `skills[${index}].id is required` }
+    }
+    if (raw.scope !== undefined && raw.scope !== "global" && raw.scope !== "project") {
+      return { ok: false, error: `skills[${index}].scope must be global or project` }
+    }
+    if (raw.action === "create" && (typeof raw.description !== "string" || typeof raw.content !== "string")) {
+      return { ok: false, error: `skills[${index}] create needs description and content` }
+    }
+    if (raw.action === "patch" && typeof raw.base_hash !== "string") {
+      return { ok: false, error: `skills[${index}] patch needs base_hash from the candidate list` }
+    }
+    if ((raw.action === "write_file" || raw.action === "remove_file") && typeof raw.path !== "string") {
+      return { ok: false, error: `skills[${index}] ${raw.action} needs path` }
+    }
+    if (raw.action === "delete" && typeof raw.base_hash !== "string") {
+      return { ok: false, error: `skills[${index}] delete needs base_hash` }
+    }
     skills.push({
       action: raw.action as SkillOp["action"],
-      id: typeof raw.id === "string" ? raw.id : undefined,
+      id: raw.id,
+      description: typeof raw.description === "string" ? raw.description : undefined,
       content: typeof raw.content === "string" ? raw.content : undefined,
       path: typeof raw.path === "string" ? raw.path : undefined,
+      scope: raw.scope as "global" | "project" | undefined,
+      base_hash: typeof raw.base_hash === "string" ? raw.base_hash : undefined,
     })
   }
 

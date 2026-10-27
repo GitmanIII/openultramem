@@ -17,7 +17,7 @@ export interface LearnPromptInput {
   memory: PromptMemory
   user: PromptMemory
   policy: string
-  skills: { id: string; description: string }[]
+  skills: { id: string; description: string; sha?: string; scope?: string; body?: string }[]
   skillsEnabled: boolean
 }
 
@@ -64,7 +64,7 @@ no prose, no markdown fences.
    "promote" is unavailable in this version.
 7. ${
     input.skillsEnabled
-      ? "Skills: create a class-level umbrella or patch an existing one; never name a skill after this session's artifacts."
+      ? "Skills: patch an existing umbrella before creating one (patch needs its sha as base_hash); create a class-level umbrella only when no candidate fits; support files go through write_file; promote is never part of a plan."
       : 'Skill authoring is not available in this version: always return "skills": [].'
   }
 8. Output valid JSON matching the schema exactly. Unknown keys are rejected.
@@ -86,7 +86,7 @@ ${input.policy.trim() || "(no policy file)"}
 
 ## Existing skills
 
-${input.skills.length ? input.skills.map((skill) => `- ${skill.id}: ${skill.description}`).join("\n") : "(none)"}
+${input.skills.length ? input.skills.map((skill) => `- ${skill.id} [${skill.scope ?? "?"}, sha ${skill.sha ?? "?"}]: ${skill.description}${skill.body ? `\n  body: ${skill.body}` : ""}`).join("\n") : "(none)"}
 
 ## Transcript
 

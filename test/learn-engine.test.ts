@@ -13,7 +13,7 @@ const input: LearnInput = {
   memory: { entries: ["machine is arch"], chars: 14, budget: 2200 },
   user: { entries: [], chars: 0, budget: 1375 },
   policy: "Never write project paths into global memory.",
-  skills: [{ id: "git-release", description: "Prepare releases" }],
+  skills: [{ id: "git-release", description: "Prepare releases", sha: "abc123", scope: "global" }],
   skillsEnabled: false,
 }
 
@@ -23,7 +23,7 @@ describe("buildLearnPrompt", () => {
     expect(prompt).toContain("POLICY.md is authoritative")
     expect(prompt).toContain("Never write project paths into global memory.")
     expect(prompt).toContain("14/2200 chars")
-    expect(prompt).toContain("git-release: Prepare releases")
+    expect(prompt).toContain("git-release [global, sha abc123]: Prepare releases")
     expect(prompt).toContain("USER: we decided to pin bun")
   })
 

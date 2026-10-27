@@ -34,6 +34,7 @@ export interface OumConfig {
   skills: {
     globalRoot: string
     projectRoot: string
+    nativeRoot: string
     descriptionBudget: number
     editUserSkills: boolean
   }
@@ -56,6 +57,7 @@ export const DEFAULTS: OumConfig = {
   skills: {
     globalRoot: "~/.agents/skills",
     projectRoot: ".opencode/skills",
+    nativeRoot: "~/.config/opencode/skills",
     descriptionBudget: 200,
     editUserSkills: false,
   },
@@ -122,6 +124,7 @@ function merge(base: OumConfig, ...layers: Json[]): OumConfig {
     const skills = section(layer.skills)
     result.skills.globalRoot = str(skills.globalRoot, result.skills.globalRoot)
     result.skills.projectRoot = str(skills.projectRoot, result.skills.projectRoot)
+    result.skills.nativeRoot = str(skills.nativeRoot, result.skills.nativeRoot)
     result.skills.descriptionBudget = num(skills.descriptionBudget, result.skills.descriptionBudget)
     result.skills.editUserSkills = bool(skills.editUserSkills, result.skills.editUserSkills)
   }
@@ -129,6 +132,7 @@ function merge(base: OumConfig, ...layers: Json[]): OumConfig {
   result.memoryRoot = expandHome(result.memoryRoot)
   result.dataRoot = expandHome(result.dataRoot)
   result.skills.globalRoot = expandHome(result.skills.globalRoot)
+  result.skills.nativeRoot = expandHome(result.skills.nativeRoot)
   return result
 }
 
