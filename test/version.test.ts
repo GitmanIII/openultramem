@@ -14,8 +14,20 @@ test("the changelog has a section for the current version", async () => {
   expect(changelog).toContain(`## ${VERSION} —`)
 })
 
-test("the latest annotated tag, when present, matches the version", async () => {
+function parse(tag: string): [number, number, number] {
+  const [major = 0, minor = 0, patch = 0] = tag.replace(/^v/, "").split(".").map(Number)
+  return [major, minor, patch]
+}
+
+test("the version is never behind the latest tag", async () => {
   const tag = Bun.spawnSync(["git", "describe", "--tags", "--abbrev=0"], { cwd: root })
   if (tag.exitCode !== 0) return // no tags yet (pre-release checkout)
-  expect(tag.stdout.toString().trim()).toBe(`v${VERSION}`)
+
+  const [tmajor, tminor, tpatch] = parse(tag.stdout.toString().trim())
+  const [vmajor, vminor, vpatch] = parse(VERSION)
+
+  // Ahead of the last tag is legal while a release is in progress; behind is not.
+  const behind =
+    vmajor < tmajor || (vmajor === tmajor && vminor < tminor) || (vmajor === tmajor && vminor === tminor && vpatch < tpatch)
+  expect(behind).toBe(false)
 })

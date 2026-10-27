@@ -446,7 +446,8 @@ Defaults; every value overridable by `ctx.options` and `OUM_*` env.
       "turns": 10,
       "toolIterations": 10,
       "onCompaction": true,
-      "fallback": "next-prompt"
+      "fallback": "next-prompt",
+      "throttleMs": 60000
     },
     "log": true
   },
@@ -528,6 +529,17 @@ Remaining:
 - 2026-10-22 — Learn module is explicit (`LearnEngine` + host `apply`), every
   trigger/skip/run logged to `learn-events.jsonl`; policy input beats transcript;
   the engine receives skill bodies as input, not a read tool.
+- 2026-10-27 — Turn end is the *boundary* at which a due review runs; the turn and
+  tool counters gate due-ness. This keeps one review per N turns instead of one
+  per turn, while still using the execution event as the natural cut-off.
+- 2026-10-27 — Per-session `throttleMs` (default 60 s). A trigger that arrives
+  during a run is queued with its own reason and skips the throttle window, since
+  it was admitted before that window began.
+- 2026-10-27 — A failed run is logged, does not reset the counters, and never
+  throws into the host; the next boundary retries.
+- 2026-10-27 — Curation has no note store to act on: `supersede`, `merge`, and
+  `archive`/`demote` map to memory edits, and `promote` is refused until note
+  scopes exist.
 
 ## Appendix A. Optional controller backend (Jev / Laya)
 

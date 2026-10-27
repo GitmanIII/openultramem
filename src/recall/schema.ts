@@ -4,7 +4,7 @@
  */
 import type { Database } from "bun:sqlite"
 
-export const SCHEMA_VERSION = 1
+export const SCHEMA_VERSION = 2
 
 export const DDL = `
 CREATE TABLE IF NOT EXISTS meta(
@@ -52,6 +52,15 @@ CREATE VIRTUAL TABLE IF NOT EXISTS messages_fts_tri USING fts5(
 CREATE INDEX IF NOT EXISTS messages_session_seq ON messages(session_id, seq);
 CREATE INDEX IF NOT EXISTS messages_created ON messages(created);
 CREATE INDEX IF NOT EXISTS messages_session_created ON messages(session_id, created);
+
+-- Applied learn operations, for idempotency per operation hash.
+CREATE TABLE IF NOT EXISTS learn_ops(
+  hash TEXT PRIMARY KEY,
+  action TEXT NOT NULL,
+  target TEXT NOT NULL,
+  applied_at INTEGER NOT NULL,
+  session_id TEXT
+);
 `
 
 export function migrate(db: Database): void {

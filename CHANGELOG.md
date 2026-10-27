@@ -3,6 +3,29 @@
 Semantic versioning. Tags are annotated (`v0.1.0`) and always match
 `package.json` and `src/version.ts`.
 
+## 0.2.0 — 2026-10-27
+
+The learning loop: OUM now writes memory instead of waiting to be asked.
+
+- **Learn module** — trigger accounting on user turns and tool calls, a per-session
+  throttle, one in-flight run with a reasoned dirty bit, and turn-end boundaries
+  from `session.execution.*`. A missed execution event is caught by the next
+  prompt (the mandatory fallback).
+- **Structured plans** — one pinned-model completion returns strict JSON
+  (`memory`, `curation`, `skills`), validated field by field with one corrective
+  retry. The engine never writes; the host applies.
+- **Policy precedence** — `POLICY.md` is an input and outranks the transcript, so
+  a mid-conversation decision cannot be encoded over a standing rule.
+- **Curation** — `supersede`, `merge`, and `archive`/`demote` map onto memory
+  edits; `promote` is refused until note scopes exist.
+- **Idempotency** — every applied operation is hashed into `state.db`, so a
+  retried run cannot duplicate a fact.
+- **Observability** — `learn-events.jsonl` records every trigger decision with a
+  reason and every run with model, counts, duration, and errors; `bun run
+  scripts/summary.ts` prints the weekly shape.
+- **`/oum-reflect`** — a command that forces a review, bypassing counters and
+  throttle but never the in-flight guard.
+
 ## 0.1.0 — 2026-10-27
 
 First release: the two halves of memory that do not need a model.

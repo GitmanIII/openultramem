@@ -10,6 +10,8 @@ export interface LearnTriggers {
   toolIterations: number
   onCompaction: boolean
   fallback: "next-prompt" | "none"
+  /** Minimum gap between runs per session. */
+  throttleMs: number
 }
 
 export interface OumConfig {
@@ -47,7 +49,7 @@ export const DEFAULTS: OumConfig = {
     enabled: true,
     model: "session",
     maxTranscriptChars: 60_000,
-    triggers: { turns: 10, toolIterations: 10, onCompaction: true, fallback: "next-prompt" },
+    triggers: { turns: 10, toolIterations: 10, onCompaction: true, fallback: "next-prompt", throttleMs: 60_000 },
     log: true,
   },
   search: { trigram: true, maxIndexedChars: 8_000, syncBudgetMs: 250 },
@@ -107,6 +109,7 @@ function merge(base: OumConfig, ...layers: Json[]): OumConfig {
     result.learn.triggers.turns = num(triggers.turns, result.learn.triggers.turns)
     result.learn.triggers.toolIterations = num(triggers.toolIterations, result.learn.triggers.toolIterations)
     result.learn.triggers.onCompaction = bool(triggers.onCompaction, result.learn.triggers.onCompaction)
+    result.learn.triggers.throttleMs = num(triggers.throttleMs, result.learn.triggers.throttleMs)
     if (triggers.fallback === "next-prompt" || triggers.fallback === "none") {
       result.learn.triggers.fallback = triggers.fallback
     }

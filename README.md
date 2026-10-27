@@ -14,8 +14,8 @@ OUM adds three things to OpenCode:
 OpenCode remains the source of truth. Every OUM index is derived, disposable, and
 rebuildable. No embeddings, no duplicated transcripts, no V1 compatibility layer.
 
-Status: **v0.1.0** — retrieval core and canonical memory are built and tested.
-The learn module, skill authoring, and migration completion are next (see
+Status: **v0.2.0** — retrieval core, canonical memory, and the learn module are
+built and tested. Skill authoring and migration completion are next (see
 [docs/BUILD.md](docs/BUILD.md)).
 
 ## Install
